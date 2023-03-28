@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Configuration;
@@ -17,20 +18,19 @@ var connection = builder.Configuration.GetValue<string>("ConnectionStrings:ConSt
 
 // Add services to the container.
 
-builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddControllers();
 
-builder.Services.AddTransient<IUserService, UserService>();
-builder.Services.AddTransient<IUserRepository, UserRepository>();
-builder.Services.AddTransient<IJWTAuthManager, JWTAuthManager>();
+builder.Services.AddSingleton<IUserService>(gt => new UserService(gt.GetRequiredService<IUserRepository>()));
+builder.Services.AddSingleton<IUserRepository>(new UserRepository(connection));
+builder.Services.AddSingleton<IJWTAuthManager>(new JWTAuthManager(key, builder.Configuration));
 
 builder.Services.AddSingleton<IAppSettingsFactory>(new AppSettingsFactory(builder.Configuration));
 builder.Services.AddSingleton<IRoleClass>(new RoleClass(builder.Configuration.GetValue<string>("ConnectionStrings:ConStr")));
 builder.Services.AddSingleton<ICrypt>(new Crypt(builder.Configuration.GetValue<string>("ConnectionStrings:CryptKey")));
-builder.Services.AddSingleton<IJWTAuthManager>(new JWTAuthManager(key: key, configuration: builder.Configuration));
+builder.Services.AddSingleton<IJWTAuthManager>(new JWTAuthManager(key: key.ToString(), configuration: builder.Configuration));
 builder.Services.AddSingleton<IRoleRepository>(new RoleRepository(connection, config: builder.Configuration));
 
 
