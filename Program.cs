@@ -1,13 +1,19 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Configuration;
 using System.Text;
+using ZENITH_TEST.CORE.Helpers;
+using ZENITH_TEST.CORE.Interface;
+using ZENITH_TEST.CORE.IRepositories;
+using ZENITH_TEST.CORE.Repositories;
+using ZENITH_TEST.CORE.Repository;
 using ZENITH_TEST.INFRASTRUCTURE.Services.User.Implementations;
 using ZENITH_TEST.INFRASTRUCTURE.Services.User.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
+var key = Encoding.ASCII.GetBytes(builder.Configuration.GetValue<string>("JWT:SecretKey")).ToString();
+var connection = builder.Configuration.GetValue<string>("ConnectionStrings:ConStr"); //local server
 
 // Add services to the container.
 
@@ -17,7 +23,17 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddControllers();
 
-builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddTransient<IUserService, UserService>();
+builder.Services.AddTransient<IUserRepository, UserRepository>();
+builder.Services.AddTransient<IJWTAuthManager, JWTAuthManager>();
+
+builder.Services.AddSingleton<IAppSettingsFactory>(new AppSettingsFactory(builder.Configuration));
+builder.Services.AddSingleton<IRoleClass>(new RoleClass(builder.Configuration.GetValue<string>("ConnectionStrings:ConStr")));
+builder.Services.AddSingleton<ICrypt>(new Crypt(builder.Configuration.GetValue<string>("ConnectionStrings:CryptKey")));
+builder.Services.AddSingleton<IJWTAuthManager>(new JWTAuthManager(key: key, configuration: builder.Configuration));
+builder.Services.AddSingleton<IRoleRepository>(new RoleRepository(connection, config: builder.Configuration));
+
+
 builder.Services.AddControllers();
 
 
